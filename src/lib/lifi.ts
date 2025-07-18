@@ -13,6 +13,8 @@ export interface RouteRequest {
   fromAmount: string
   fromAddress: string
   toAddress: string
+  targetAmount?: string // The exact amount that should be delivered
+  targetTokenSymbol?: string // The symbol of the target token
 }
 
 export interface RouteResponse {
@@ -26,14 +28,60 @@ export async function getRoutes(request: RouteRequest): Promise<RouteResponse> {
     // Mock implementation for MVP
     await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API delay
     
+    // Determine target token details based on the request
+    const getTargetTokenInfo = (tokenAddress: string) => {
+      // This would normally come from a token registry or the request
+      // For now, we'll determine based on common addresses
+      if (tokenAddress.toLowerCase().includes('usdc') || tokenAddress === '0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9') {
+        return { symbol: 'USDC', decimals: 6 }
+      } else if (tokenAddress === '0x0000000000000000000000000000000000000000') {
+        return { symbol: 'MNT', decimals: 18 }
+      } else if (tokenAddress.toLowerCase().includes('weth') || tokenAddress === '0xdEAddEaDdeadDEadDEADDEAddEADDEAddead1111') {
+        return { symbol: 'WETH', decimals: 18 }
+      }
+      return { symbol: 'USDC', decimals: 6 } // Default fallback
+    }
+
+    const getSourceTokenInfo = (tokenAddress: string) => {
+      if (tokenAddress === '0x0000000000000000000000000000000000000000') {
+        return { symbol: 'ETH' }
+      } else if (tokenAddress.toLowerCase().includes('usdc')) {
+        return { symbol: 'USDC' }
+      }
+      return { symbol: 'ETH' } // Default fallback
+    }
+    
+    const targetTokenInfo = getTargetTokenInfo(request.toToken)
+    const sourceTokenInfo = getSourceTokenInfo(request.fromToken)
+    
+    // Use the target amount from the request if provided, otherwise calculate it
+    const getTargetAmount = () => {
+      if (request.targetAmount && request.targetTokenSymbol) {
+        // Use the exact amount requested in the invoice
+        const amount = parseFloat(request.targetAmount)
+        return (amount * Math.pow(10, targetTokenInfo.decimals)).toString()
+      }
+      
+      // Fallback calculation based on source amount
+      const fromAmountEth = parseFloat(request.fromAmount) / Math.pow(10, 18)
+      let targetAmount = fromAmountEth
+      if (sourceTokenInfo.symbol === 'ETH' && targetTokenInfo.symbol === 'USDC') {
+        targetAmount = fromAmountEth * 2800 // 1 ETH = 2800 USDC
+      } else if (sourceTokenInfo.symbol === 'ETH' && targetTokenInfo.symbol === 'MNT') {
+        targetAmount = fromAmountEth * 1400 // 1 ETH = 1400 MNT
+      }
+      
+      return (targetAmount * Math.pow(10, targetTokenInfo.decimals)).toString()
+    }
+    
     const mockRoute: RouteData = {
       id: 'mock-route-1',
       fromChain: request.fromChain.toString(),
       toChain: request.toChain.toString(),
-      fromToken: { symbol: 'ETH', address: request.fromToken },
-      toToken: { symbol: 'USDC', address: request.toToken, decimals: 6 },
+      fromToken: { symbol: sourceTokenInfo.symbol, address: request.fromToken },
+      toToken: { symbol: request.targetTokenSymbol || targetTokenInfo.symbol, address: request.toToken, decimals: targetTokenInfo.decimals },
       fromAmount: request.fromAmount,
-      toAmount: '100000000', // Mock 100 USDC
+      toAmount: getTargetAmount(),
       steps: [
         {
           id: 'step-1',

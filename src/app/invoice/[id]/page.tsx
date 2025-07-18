@@ -147,6 +147,8 @@ export default function InvoicePage() {
         fromAmount: parseEther(estimatedAmount).toString(),
         fromAddress: address,
         toAddress: invoice.recipient,
+        targetAmount: invoice.amount, // Pass the exact invoice amount
+        targetTokenSymbol: invoice.targetToken, // Pass the exact target token symbol
       }
 
       const result = await getRoutes(routeRequest)
@@ -433,7 +435,7 @@ export default function InvoicePage() {
                       <div className="flex items-center justify-center">
                         <div className="text-center">
                           <div className="text-sm text-gray-500 mb-1">From {getChainName(selectedChain)}</div>
-                          <div className="font-semibold">{selectedToken ? getEstimatedAmount() : '---'} {getSelectedTokenSymbol()}</div>
+                          <div className="font-semibold text-green-600 ">{selectedToken ? getEstimatedAmount() : '---'} {getSelectedTokenSymbol()}</div>
                         </div>
                         <div className="mx-4 text-gray-400">→</div>
                         <div className="text-center">
@@ -476,22 +478,22 @@ export default function InvoicePage() {
                     Confirm Payment
                   </h3>
                   
-                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                    <h4 className="font-semibold mb-2">Route Summary</h4>
+                  <div className="bg-gray-100 rounded-lg p-4 mb-6">
+                    <h4 className="font-semibold text-gray-900 mb-2">Route Summary</h4>
                     <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between text-gray-900">
                         <span>From:</span>
                                                <span>{formatTokenAmount(selectedRoute.fromAmount, 18)} {selectedRoute.fromToken.symbol}</span>
                      </div>
-                     <div className="flex justify-between">
+                     <div className="flex justify-between text-gray-900">
                        <span>To:</span>
                        <span>{formatTokenAmount(selectedRoute.toAmount, selectedRoute.toToken.decimals)} {selectedRoute.toToken.symbol}</span>
                      </div>
-                     <div className="flex justify-between">
+                     <div className="flex justify-between text-gray-900">
                        <span>Steps:</span>
                        <span>{selectedRoute.steps.length}</span>
                      </div>
-                     <div className="flex justify-between">
+                     <div className="flex justify-between text-gray-900">
                        <span>Estimated Time:</span>
                        <span>{Math.ceil(selectedRoute.steps.reduce((acc: number, step) => acc + (step.estimate.executionDuration || 0), 0) / 60)} min</span>
                       </div>
